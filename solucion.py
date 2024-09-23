@@ -1,26 +1,37 @@
+import pandas as pd
+from pathlib import Path
 import os
-import csv
+import zipfile
 
+# Extraer el archivo ZIP
+datos = zipfile.ZipFile('data.zip', 'r')
+datos.extractall()
+datos.close()
 
-def create_csv_from_directory(directory, output_file):
+def procesar_carpeta(carpeta):
     data = []
+    for root, _, files in os.walk(carpeta):
+        
+        for file in files:
+            
+            if file.endswith('.txt'):
+                file_path = Path(root) / file
+                label = Path(root).name 
+                
+                with file_path.open('r', encoding='utf-8') as f:
+                    text = f.read().strip()
+                    data.append((text, label)) 
+                
 
-    for sentiment in ["positive", "negative", "neutral"]:
-        sentiment_path = os.path.join(directory, sentiment)
-        if os.path.exists(sentiment_path):
-            for filename in os.listdir(sentiment_path):
-                if filename.endswith(".txt"):
-                    file_path = os.path.join(sentiment_path, filename)
-                    with open(file_path, "r", encoding="utf-8") as file:
-                        phrase = file.read().strip()
-                        data.append([phrase, sentiment])
+    return data
 
-    with open(output_file, "w", newline="", encoding="utf-8") as csvfile:
-        writer = csv.writer(csvfile)
-        writer.writerow(["phrase", "sentiment"])
-        writer.writerows(data)
+def guardar_csv(datos, nombre_csv):
+    df = pd.DataFrame(datos, columns=['phrase', 'sentiment'])
+    df.to_csv(nombre_csv, index=False)
+    #print(f'Archivo CSV guardado en: {nombre_csv}')
 
 
-create_csv_from_directory("data/train", "train_dataset.csv")
 
-create_csv_from_directory("data/test", "test_dataset.csv")
+files = ["train_dataset.csv", "test_dataset.csv"]
+for file in files:
+    guardar_csv(procesar_carpeta(file.split("_")[0]), file)
